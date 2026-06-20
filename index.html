@@ -188,7 +188,7 @@
             </div>
         </footer>
     </div>
-    <script>
+        <script>
         // Configuración de Precios Económicos Tipo Uber para Tucumán
         const TARIFA_BASE = 1800;
         const PRECIO_POR_KM = 400;
@@ -199,7 +199,7 @@
 
         let mapa = null;
 
-        // Alertas dinámicas según la selección del tipo de envío
+        // Alertas dinámicas según el tipo de envío
         document.getElementById('tipoEnvio').addEventListener('change', function() {
             const aviso = document.getElementById('avisoTipo');
             switch(this.value) {
@@ -218,7 +218,7 @@
             }
         });
 
-        // Función Principal de Ejecución al presionar el Botón
+        // Función Principal de Ejecución
         async function calcularRuta() {
             const nombreCliente = document.getElementById('nombreCliente').value.trim();
             let origen = document.getElementById('origen').value.trim();
@@ -328,7 +328,7 @@
             } catch { return null; }
         }
 
-        // FÓRMULA CORREGIDA: Accede explícitamente a los índices numéricos [0] y [1] de las coordenadas lat/lon
+        // FÓRMULA ARREGLADA: Con índices correctos de latitud [0] y longitud [1]
         function calcularDistanciaDirecta(p1, p2) {
             const R = 6371; 
             const dLat = (p2[0] - p1[0]) * Math.PI / 180;
@@ -343,7 +343,7 @@
             return R * c;
         }
 
-        // Inicialización y manejo controlado de capas en Leaflet
+        // MAPA ARREGLADO: Padding explícito configurado correctamente en 20 píxeles
         function mostrarMapa(origen, destino) {
             const contenedorMapa = document.getElementById('mapa');
             contenedorMapa.classList.remove('hidden');
@@ -367,10 +367,9 @@
             L.marker(destino).addTo(mapa).bindPopup("<b>Punto de Entrega</b>");
 
             const puntos = L.polyline([origen, destino], {color: '#3B82F6', weight: 6, opacity: 0.8}).addTo(mapa);
-            mapa.fitBounds(puntos.getBounds(), {padding: [30, 30]});
+            mapa.fitBounds(puntos.getBounds(), {padding: [20, 20]});
         }
 
-        // Controlador de visualización del correo electrónico en el pie de página
         document.getElementById('verCorreoBtn').addEventListener('click', function() {
             document.getElementById('correoOculto').textContent = "Contacto: ";
             document.getElementById('correoReal').classList.remove('hidden');
@@ -378,5 +377,6 @@
         });
     </script>
 </body>
-        </html>
-    
+</html>
+
+                        
