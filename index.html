@@ -83,7 +83,7 @@
             </h1>
             <p class="text-white/90 text-lg font-medium px-2">🚚 Mensajería Rápida en TODO EL TERRITORIO DE TUCUMÁN 🚚</p>
             <div class="w-48 h-1.5 bg-secondary mx-auto mt-4 rounded-full box-glow-yellow"></div>
-            <p class="text-white/70 text-sm mt-3">Capital · Yerba Buena · Tafí Viejo · Banda · El Mollar · y más localidades</p>
+            <p class="text-white/70 text-sm mt-3">Capital · Yerba Buena · Tafí Viejo · Banda · El Mollar · Amaicha · y más localidades</p>
         </header>
 
         <main class="bg-white/95 backdrop-blur-lg rounded-[2rem] p-6 md:p-8 box-glow border-glow relative overflow-hidden mx-2">
@@ -113,7 +113,7 @@
                     <label class="block text-base font-bold text-primary mb-3 flex items-center gap-3">
                         <i class="fa fa-map-pin text-green-600 text-xl"></i> DIRECCIÓN DE ENTREGA <span class="text-xs font-normal text-gray-600">(Exacta)</span>
                     </label>
-                    <input type="text" id="destino" placeholder="Ej: Av. Solano vera al 100 yerba buena" 
+                    <input type="text" id="destino" placeholder="Ej: Av. Solano Vera 100, San Miguel" 
                         class="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-accent focus:border-accent transition-custom input-movil bg-white/80" required>
                     <p class="text-xs text-gray-600 mt-2">* Calle, Número y Localidad</p>
                 </div>
@@ -124,7 +124,7 @@
                     </label>
                     <select id="tipoEnvio" 
                         class="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary focus:border-secondary transition-custom bg-white/80 input-movil" required>
-                        <option value="">-- Selecciona una opción --</option>
+                        <option value="">-- Selecciona una option --</option>
                         <option value="comida">🍕 Comida</option>
                         <option value="bebidas">🥤 Bebidas</option>
                         <option value="fragil">📦 Cosas frágiles (Vidrio, Electrónicos, etc.)</option>
@@ -166,31 +166,222 @@
                 </a>
 
                 <div id="avisosExtra" class="hidden mt-3 space-y-2 text-center px-2">
+                    <p class="text-sm text-gray-700 bg-yellow-50 p-2 rounded-lg border border-yellow-200">
+                        ⚠️ Valores estimados: tenés descuentos del 10%, 15% o 20% según uso, ¡sumás beneficios cada vez más!
+                    </p>
+                    <p class="text-sm text-red-700 bg-red-50 p-2 rounded-lg border border-red-200">
+                        ⚠️ Recargos por: demoras, alta demanda, días no laborables o lluvia.
+                    </p>
+                </div>
+
+            </form>
+        </main>
+
+        <footer class="mt-12 text-center text-white/80 text-sm px-4">
+            <p class="mb-3 font-medium">© 2026 MESSENGER-FLASH - Mensajería en Todo el Territorio de Tucumán</p>
+            <div class="mt-2">
+                <span id="correoOculto">Contacto: **********@gmail.com</span>
+                <button id="verCorreoBtn" class="ml-2 bg-secondary/90 hover:bg-secondary text-primary font-semibold px-3 py-1 rounded-lg text-xs transition-custom">
+                    Ver correo
+                </button>
+                <p id="correoReal" class="mt-2 text-white/70 hidden">Correo: poncejose027@gmail.com</p>
+            </div>
+        </footer>
+    </div>
+    <script>
+        // Configuración de Precios Económicos Tipo Uber para Tucumán
+        const TARIFA_BASE = 1800;
+        const PRECIO_POR_KM = 400;
+        const RECARGO_FRAGIL = 1000;
+        const RECARGO_COMIDA = 350;
+        const RECARGO_DOCUMENTO = 200;
+        
+        const NUMERO_WHATSAPP = "5493815727447"; 
+
+        let mapa = null;
+
+        // Gestión interactiva de avisos según tipo de envío
+        document.getElementById('tipoEnvio').addEventListener('change', function() {
+            const aviso = document.getElementById('avisoTipo');
+            switch(this.value) {
+                case 'fragil': 
+                    aviso.textContent = "⚠️ Se aplicó recargo por embalaje y manejo especial seguro"; 
+                    break;
+                case 'comida': 
+                case 'bebidas': 
+                    aviso.textContent = "🍱 Transporte en condiciones óptimas de temperatura y cuidado"; 
+                    break;
+                case 'documento': 
+                    aviso.textContent = "🔑 Servicio prioritario con entrega bajo firma"; 
+                    break;
+                default: 
+                    aviso.textContent = "";
+            }
+        });
+
+        // Función de cálculo principal
+        async function calcularRuta() {
+            const nombreCliente = document.getElementById('nombreCliente').value.trim();
+            let origen = document.getElementById('origen').value.trim();
+            let destino = document.getElementById('destino').value.trim();
+            const tipoEnvio = document.getElementById('tipoEnvio').value;
+
+            if(!nombreCliente || !origen || !destino || !tipoEnvio) {
+                alert("⚠️ Completa todos los campos por favor");
+                return;
+            }
+
+            try {
+                // Preservamos tus cadenas originales para el envío textual de WhatsApp
+                const origenOriginal = origen;
+                const destinoOriginal = destino;
+
+                // Limpieza y estructurado geográfico local regional
+                origen = limpiarDireccion(origen) + ", Tucumán, Argentina";
+                destino = limpiarDireccion(destino) + ", Tucumán, Argentina";
+
+                let coordOrigen = await buscarVariasFormas(origen);
+                let coordDestino = await buscarVariasFormas(destino);
+
+                // Ubicaciones de respaldo en San Miguel de Tucumán por si falla la consulta
+                if (!coordOrigen) coordOrigen = [-26.8300, -65.2230];
+                if (!coordDestino) coordDestino = [-26.8240, -65.2400];
+
+                const distanciaKm = calcularDistanciaDirecta(coordOrigen, coordDestino);
+                const tiempoMin = Math.round(distanciaKm * 2.2) + 10; // Añadido margen urbano coherente
+
+                let tarifaTotal = TARIFA_BASE + (distanciaKm * PRECIO_POR_KM);
+
+                switch(tipoEnvio) {
+                    case 'fragil': tarifaTotal += RECARGO_FRAGIL; break;
+                    case 'comida': case 'bebidas': tarifaTotal += RECARGO_COMIDA; break;
+                    case 'documento': tarifaTotal += RECARGO_DOCUMENTO; break;
+                }
+
+                tarifaTotal = Math.round(tarifaTotal);
+                const distanciaFormateada = distanciaKm.toFixed(2);
+
+                // Renderizado de valores en UI
+                document.getElementById('distanciaValor').textContent = distanciaFormateada;
+                document.getElementById('tiempoValor').textContent = tiempoMin;
+                document.getElementById('tarifaValor').textContent = tarifaTotal;
+                
+                document.getElementById('resultados').classList.remove('hidden');
+                document.getElementById('botonWhatsapp').classList.remove('hidden');
+                document.getElementById('avisosExtra').classList.remove('hidden');
+
+                // Enlace de la API de mensajería con formato limpio
+                const mensaje = encodeURIComponent(
+                    `⚡ *NUEVO PEDIDO FLASH* ⚡\n\n` +
+                    `👤 *Cliente:* ${nombreCliente}\n` +
+                    `📤 *Retiro:* ${origenOriginal}\n` +
+                    `📥 *Entrega:* ${destinoOriginal}\n` +
+                    `📦 *Envío:* ${tipoEnvio.toUpperCase()}\n` +
+                    `🛣️ *Distancia:* ${distanciaFormateada} km\n` +
+                    `⏱️ *Tiempo Aprox:* ${tiempoMin} min\n\n` +
+                    `💰 *Total a pagar:* $${tarifaTotal}\n\n` +
+                    `¿Me confirman un cadete?`
+                );
+                document.getElementById('botonWhatsapp').href = `https://wa.me{NUMERO_WHATSAPP}?text=${mensaje}`;
+
+                mostrarMapa(coordOrigen, coordDestino);
+
+                setTimeout(() => {
+                    document.getElementById('resultados').scrollIntoView({behavior: 'smooth', block: 'start'});
+                }, 100);
+
+            } catch (error) {
+                console.error(error);
+                alert("Precio calculado de contingencia");
+                document.getElementById('distanciaValor').textContent = "1.50";
+                document.getElementById('tiempoValor').textContent = "15";
+                document.getElementById('tarifaValor').textContent = TARIFA_BASE + (tipoEnvio === 'fragil' ? RECARGO_FRAGIL : 0);
+                document.getElementById('resultados').classList.remove('hidden');
+                document.getElementById('botonWhatsapp').classList.remove('hidden');
+                document.getElementById('avisosExtra').classList.remove('hidden');
+            }
+        }
+
+        // Limpieza de nomenclatura de calles para mejorar efectividad en Nominatim
+        function limpiarDireccion(texto) {
+            texto = texto.replace(/al|y|esq|esquina|n°/gi, ' ');
+            texto = texto.replace(/san migu/gi, 'San Miguel de Tucumán');
+            texto = texto.replace(/solano vera/gi, 'Avenida Solano Vera');
+            texto = texto.replace(/uruguay/gi, 'Calle Uruguay');
+            return texto.trim();
+        }
+
+        // Estrategia de reintento de localización por capas
+        async function buscarVariasFormas(direccion) {
+            let res = await obtenerCoordenadas(direccion);
+            if (res) return res;
+            
+            const partes = direccion.split(',');
+            if (partes.length > 1) {
+                res = await obtenerCoordenadas(partes[0] + ", San Miguel de Tucumán");
+                if (res) return res;
+            }
+            return await obtenerCoordenadas(partes[0] + ", Tucumán");
+        }
+
+        //粗 Llamado HTTP asíncrono hacia OpenStreetMap
+        async function obtenerCoordenadas(direccion) {
+            try {
+                const respuesta = await fetch(`https://openstreetmap.org{encodeURIComponent(direccion)}&limit=1&countrycodes=AR`, {
+                    headers: { 'User-Agent': 'MessengerFlash/1.0' }
+                });
+                if (!respuesta.ok) return null;
+                const datos = await respuesta.json();
+                if (datos.length === 0) return null;
+                return [parseFloat(datos[0].lat), parseFloat(datos[0].lon)];
+            } catch { return null; }
+        }
+
+        // Cálculo de Haversine (Línea recta matemática planetaria)
+        function calcularDistanciaDirecta(p1, p2) {
+            const R = 6371; // Radio de la Tierra en Km
+            const dLat = (p2[0] - p1[0]) * Math.PI / 180;
+            const dLon = (p2[1] - p1[1]) * Math.PI / 180;
+            const lat1 = p1[0] * Math.PI / 180;
+            const lat2 = p2[0] * Math.PI / 180;
+
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1) * Math.cos(lat2) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return R * c;
+        }
+
+        // Control y renderizado visual del Mapa Leaflet
         function mostrarMapa(origen, destino) {
             const contenedorMapa = document.getElementById('mapa');
             contenedorMapa.classList.remove('hidden');
 
-            if (mapa) mapa.remove();
+            // Destrucción limpia del contenedor para evitar colisiones de ID
+            if (mapa) {
+                mapa.remove();
+                mapa = null;
+            }
 
             mapa = L.map('mapa', { 
                 zoomControl: true,
                 scrollWheelZoom: false,
                 tap: true
-            }).setView([-26.8300, -65.2230], 14);
+            }).setView(origen, 14);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(mapa);
 
-            // Iconos de marcadores adaptados con sus tamaños fijos [32, 32]
-            L.marker(origen, {icon: L.icon({iconUrl: 'https://flaticon.com', iconSize: [32, 32]})}).addTo(mapa).bindPopup("Retiro");
-            L.marker(destino, {icon: L.icon({iconUrl: 'https://flaticon.com', iconSize: [32, 32]})}).addTo(mapa).bindPopup("Entrega");
+            // Marcadores con íconos vectoriales externos y popups descriptivos
+            L.marker(origen, {icon: L.icon({iconUrl: 'https://flaticon.com', iconSize: [32, 32]})}).addTo(mapa).bindPopup("<b>Punto de Retiro</b>");
+            L.marker(destino, {icon: L.icon({iconUrl: 'https://flaticon.com', iconSize: [32, 32]})}).addTo(mapa).bindPopup("<b>Punto de Entrega</b>");
 
-            const puntos = L.polyline([origen, destino], {color: '#3B82F6', weight: 6, opacity: 0.8}).addTo(mapa);
-            mapa.fitBounds(puntos.getBounds(), {padding: [20, 20]});
+            const puntos = L.polyline([origen, destino], {color: '#3B82F6', weigt: 6, opacity: 0.8}).addTo(mapa);
+            mapa.fitBounds(puntos.getBounds(), {padding: [40, 40]});
         }
 
-        // --- SISTEMA MOSTRAR CORREO DEL FOOTER ---
+        // Mostrar correo en footer de forma controlada
         document.getElementById('verCorreoBtn').addEventListener('click', function() {
             document.getElementById('correoOculto').textContent = "Contacto: ";
             document.getElementById('correoReal').classList.remove('hidden');
@@ -198,5 +389,5 @@
         });
     </script>
 </body>
-      </html>
-  
+</html>
+                                                        
